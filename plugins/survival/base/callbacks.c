@@ -672,7 +672,8 @@ cdsurvival_ClientProcess (CDServer* server, CDClient* client, SVPacket* packet)
                 if(chunk == NULL) {
                     SERR(server,"chunk was null");
                 }
-                chunk->blocks[iPos] = SVBedrock;
+                chunk->blocks[iPos] = SVAir;
+//		chunk->heightMap[x * z] = 0;
 
                 chunk->position.x = pos.x;
                 chunk->position.z = pos.z;
@@ -684,8 +685,8 @@ cdsurvival_ClientProcess (CDServer* server, CDClient* client, SVPacket* packet)
                 pkt.response.position.x = data->request.position.x;
                 pkt.response.position.y = data->request.position.y;
                 pkt.response.position.z = data->request.position.z;
-                pkt.response.type = SVBedrock;
-                pkt.response.metadata = SVBedrock;
+                pkt.response.type = SVAir;
+                pkt.response.metadata = SVAir;
                 SVPacket response = { SVResponse, SVBlockChange, (CDPointer) &pkt };
                 SV_PlayerSendPacketAndCleanData(player, &response);
             }
