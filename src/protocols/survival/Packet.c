@@ -314,11 +314,17 @@ SV_GetPacketDataFromBuffer (SVPacket* self, CDBuffer* input)
 
             packet->request.status = SV_BufferRemoveByte(input);
 
+            packet->request.position.x = SV_BufferRemoveInteger(input);
+            packet->request.position.y = SV_BufferRemoveByte(input);
+            packet->request.position.z = SV_BufferRemoveInteger(input);
+
+/*
             SV_BufferRemoveFormat(input, "ibi",
                 &packet->request.position.x,
                 &packet->request.position.y,
                 &packet->request.position.z
             );
+*/
 
             packet->request.face = SV_BufferRemoveByte(input);
 

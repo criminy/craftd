@@ -31,8 +31,15 @@
 
 #include <craftd/protocols/survival.h>
 
+#define MAP_WIDTH 500
+#define MAP_HEIGHT 500
+
+uint8_t** chunk_generated;
+SVChunk** chunks;
+
 #include "include/nbt.h"
 #include "include/itoa.h"
+
 
 static struct {
     const char* path;
@@ -107,11 +114,19 @@ cdnbt_WorldGetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* ch
 
     WDEBUG(world, "loading chunk %s", CD_StringContent(chunkPath));
 
+
+
     nbt_node* root = nbt_parse_path(CD_StringContent(chunkPath));
 
     if (!root || errno != NBT_OK || !cdnbt_ValidChunk(root)) {
+
+ 	if(chunk_generated[x+100][z+100] == 1) {
+            goto load_chunk;
+	}	
+
         if (cdnbt_GenerateChunk(world, x, z, chunk, NULL) == CDOk) {
-            WDEBUG(world, "generated chunk: %d,%d", x, z);
+//            WERR(world, "generated chunk: %d,%d", x, z);
+	    chunk_generated[x+100][z+100] = 1;
             goto done;
         }
         else {
@@ -120,6 +135,15 @@ cdnbt_WorldGetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* ch
         }
     }
 
+    load_chunk: {
+	SVChunk* src = &chunks[x+100][z+100];
+	memcpy(chunk->heightMap,src->heightMap,256);
+	memcpy(chunk->blocks,src->blocks,32768);
+	memcpy(chunk->data,src->data,16384);
+	memcpy(chunk->blockLight,src->blockLight,16384);
+	memcpy(chunk->skyLight,src->skyLight,16384);
+    }
+/*
     nbt_node* node;
 
     node = nbt_find_by_path(root, ".Level.HeightMap");
@@ -136,6 +160,7 @@ cdnbt_WorldGetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* ch
 
     node = nbt_find_by_path(root, ".Level.SkyLight");
     memcpy(chunk->skyLight, node->payload.tag_byte_array.data, 16384);
+*/
 
     done: {
         if (root) {
@@ -164,6 +189,13 @@ static
 bool
 cdnbt_WorldSetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* chunk)
 {
+    SVChunk* dst = &chunks[x+100][z+100];
+    memcpy(dst->heightMap,chunk->heightMap,256);
+    memcpy(dst->blocks,chunk->blocks,32768);
+    memcpy(dst->data,chunk->data,16384);
+    memcpy(dst->blockLight,chunk->blockLight,16384);
+    memcpy(dst->skyLight,chunk->skyLight,16384);
+
     return true;
 }
 
@@ -171,6 +203,8 @@ static
 bool
 cdnbt_WorldSave (CDServer* server, SVWorld* world)
 {
+
+
     return true;
 }
 
@@ -269,7 +303,23 @@ CD_PluginInitialize (CDPlugin* self)
 
         C_SAVE(C_PATH(self->config, "path"), C_STRING, _config.path);
         C_SAVE(C_PATH(self->config, "base"), C_INT, _config.base);
+	
+	
+
+
     }
+
+	chunks = (SVChunk**)malloc(MAP_WIDTH*sizeof(SVChunk*));
+	for(int i = 0; i < MAP_WIDTH; i++) {
+		chunks[i] = (SVChunk*)malloc(MAP_HEIGHT*sizeof(SVChunk));
+	}
+
+
+	chunk_generated = (uint8_t**)CD_malloc(MAP_WIDTH*sizeof(uint8_t*));
+	for(int i = 0; i < MAP_WIDTH; i++) {
+		chunk_generated[i] = (uint8_t*)CD_malloc(MAP_HEIGHT*sizeof(uint8_t));
+	}
+
 
     CD_EventRegister(self->server, "World.create",  cdnbt_WorldCreate);
     CD_EventRegister(self->server, "World.chunk",   cdnbt_WorldGetChunk);

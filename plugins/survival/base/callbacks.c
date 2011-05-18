@@ -646,6 +646,51 @@ cdsurvival_ClientProcess (CDServer* server, CDClient* client, SVPacket* packet)
             CD_ServerKick(server, client, CD_CloneString(data->request.reason));
         } break;
 
+        case SVPlayerDigging: {
+            // Stub/Proof of concept. Perform security checks, move to plugin, and implement block erasing.
+            SVPacketPlayerDigging* data = (SVPacketPlayerDigging*) packet->data;
+            if(data->request.status == SVStoppedDigging) 
+            {
+                SVChunkPosition pos = SV_BlockPositionToChunkPosition(data->request.position);
+		int x = abs(data->request.position.x);
+		int z = abs(data->request.position.z);
+			
+
+		x = abs(abs(pos.x)*16 - x);
+		z = abs(abs(pos.z)*16 - z);
+
+		if( x > 17 || x < 0)	SERR(server,"x is greater than 17 or less than 0 %i",x);
+		if( z > 17 || z < 0)	SERR(server,"z is greater than 17 or less than 0 %i", z);
+
+		int iPos = data->request.position.y + (z * 128) + (x * 128 * 16);
+
+
+		SERR(server,"SVPlayerDigging packet info: X: %i,%i Y:%i Z:%i,%i CALCULATED ARRAY POSITION:%i\n",x,data->request.position.x,data->request.position.y,z,data->request.position.z,iPos);
+
+                //update chunk and save it
+                SVChunk* chunk = SV_WorldGetChunk(world,pos.x,pos.z);
+                if(chunk == NULL) {
+                    SERR(server,"chunk was null");
+                }
+                chunk->blocks[iPos] = SVBedrock;
+
+                chunk->position.x = pos.x;
+                chunk->position.z = pos.z;
+                SV_WorldSetChunk(world,chunk);
+
+                //update client with packet (WORKS!)
+                SVPacketBlockChange pkt;
+		//TODO: send to all clients inside of chunk.
+                pkt.response.position.x = data->request.position.x;
+                pkt.response.position.y = data->request.position.y;
+                pkt.response.position.z = data->request.position.z;
+                pkt.response.type = SVBedrock;
+                pkt.response.metadata = SVBedrock;
+                SVPacket response = { SVResponse, SVBlockChange, (CDPointer) &pkt };
+                SV_PlayerSendPacketAndCleanData(player, &response);
+            }
+	} break;
+
         default: {
             if (player) {
                 SERR(server, "unimplemented packet 0x%.2X from %s (%s)", packet->type, 
