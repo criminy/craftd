@@ -120,13 +120,12 @@ cdnbt_WorldGetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* ch
 
     if (!root || errno != NBT_OK || !cdnbt_ValidChunk(root)) {
 
- 	if(chunk_generated[x+100][z+100] == 1) {
+ if(chunk_generated[x+100][z+100] == 1) {
             goto load_chunk;
-	}	
+}
 
         if (cdnbt_GenerateChunk(world, x, z, chunk, NULL) == CDOk) {
-//            WERR(world, "generated chunk: %d,%d", x, z);
-	    chunk_generated[x+100][z+100] = 1;
+    chunk_generated[x+100][z+100] = 1;
             goto done;
         }
         else {
@@ -136,12 +135,12 @@ cdnbt_WorldGetChunk (CDServer* server, SVWorld* world, int x, int z, SVChunk* ch
     }
 
     load_chunk: {
-	SVChunk* src = &chunks[x+100][z+100];
-	memcpy(chunk->heightMap,src->heightMap,256);
-	memcpy(chunk->blocks,src->blocks,32768);
-	memcpy(chunk->data,src->data,16384);
-	memcpy(chunk->blockLight,src->blockLight,16384);
-	memcpy(chunk->skyLight,src->skyLight,16384);
+SVChunk* src = &chunks[x+100][z+100];
+memcpy(chunk->heightMap,src->heightMap,256);
+memcpy(chunk->blocks,src->blocks,32768);
+memcpy(chunk->data,src->data,16384);
+memcpy(chunk->blockLight,src->blockLight,16384);
+memcpy(chunk->skyLight,src->skyLight,16384);
     }
 /*
     nbt_node* node;
@@ -203,8 +202,6 @@ static
 bool
 cdnbt_WorldSave (CDServer* server, SVWorld* world)
 {
-
-
     return true;
 }
 
@@ -303,22 +300,17 @@ CD_PluginInitialize (CDPlugin* self)
 
         C_SAVE(C_PATH(self->config, "path"), C_STRING, _config.path);
         C_SAVE(C_PATH(self->config, "base"), C_INT, _config.base);
-	
-	
 
+        chunks = (SVChunk**)CD_malloc(MAP_WIDTH*sizeof(SVChunk*));
+        chunk_generated = (uint8_t**)CD_malloc(MAP_WIDTH*sizeof(uint8_t*));
+
+        for(int i = 0; i < MAP_WIDTH; i++) {
+            chunks[i] = (SVChunk*)CD_malloc(MAP_HEIGHT*sizeof(SVChunk));
+            chunk_generated[i] = (uint8_t*)CD_malloc(MAP_HEIGHT*sizeof(uint8_t));
+        }
 
     }
 
-	chunks = (SVChunk**)malloc(MAP_WIDTH*sizeof(SVChunk*));
-	for(int i = 0; i < MAP_WIDTH; i++) {
-		chunks[i] = (SVChunk*)malloc(MAP_HEIGHT*sizeof(SVChunk));
-	}
-
-
-	chunk_generated = (uint8_t**)CD_malloc(MAP_WIDTH*sizeof(uint8_t*));
-	for(int i = 0; i < MAP_WIDTH; i++) {
-		chunk_generated[i] = (uint8_t*)CD_malloc(MAP_HEIGHT*sizeof(uint8_t));
-	}
 
 
     CD_EventRegister(self->server, "World.create",  cdnbt_WorldCreate);
@@ -342,6 +334,14 @@ extern
 bool
 CD_PluginFinalize (CDPlugin* self)
 {
+
+    for(int i = 0; i < MAP_WIDTH; i++) {
+        CD_free(chunks[i]);
+        CD_free(chunk_generated[i]);
+    }
+    CD_free(chunks);
+    CD_free(chunk_generated);
+
     CD_EventUnregister(self->server, "World.create",  cdnbt_WorldCreate);
     CD_EventUnregister(self->server, "World.chunk",   cdnbt_WorldGetChunk);
     CD_EventUnregister(self->server, "World.chunk=",   cdnbt_WorldSetChunk);
