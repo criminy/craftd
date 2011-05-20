@@ -71,7 +71,8 @@ typedef struct _SVWorld {
     CDMap*  entities;
 
     SVBlockPosition spawnPosition;
-    CDSet*          chunks;
+    /// The cached chunks, using xval_zval as the hash key.
+    CDHash*          chunks;
 
     SVEntityId lastGeneratedEntityId;
 

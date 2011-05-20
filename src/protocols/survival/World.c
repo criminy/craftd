@@ -52,7 +52,7 @@ SV_CreateWorld (CDServer* server, const char* name)
     self->players  = CD_CreateHash();
     self->entities = CD_CreateMap();
 
-    self->chunks = CD_CreateSetWith(2000, (CDSetCompare) SV_CompareChunkPosition, (CDSetHash) SV_HashChunkPosition);
+    self->chunks = CD_CreateHash();
 
     self->lastGeneratedEntityId = 0;
 
@@ -91,8 +91,7 @@ SV_DestroyWorld (SVWorld* self)
 
     CD_DestroyHash(self->players);
     CD_DestroyMap(self->entities);
-
-    CD_DestroySet(self->chunks);
+    CD_DestroyHash(self->chunks);
 
     CD_DestroyString(self->name);
 
@@ -260,14 +259,28 @@ SV_WorldSetTime (SVWorld* self, uint16_t time)
 SVChunk*
 SV_WorldGetChunk (SVWorld* self, int x, int z)
 {
-    SVChunk* result = CD_alloc(sizeof(SVChunk));
+    SVChunk* result;
     CDError  status;
+    //TODO: better buffer?
+    char buffer[8];
+    sprintf(buffer,"%i_%i",x,z);
 
-    CD_EventDispatchWithError(status, self->server, "World.chunk", self, x, z, result);
+    // is using the buffer with CD_Hash the quickest/simplest way of storing chunks?
+    if(CD_HashHasKey(self->chunks,buffer)) {
+       result = (SVChunk*) CD_HashGet(self->chunks,buffer);
+       status = CDOk;
+    }
+    else {
+       result = CD_alloc(sizeof(SVChunk));
+       CD_EventDispatchWithError(status, self->server, "World.chunk", self, x, z, result);
+       if(status == CDOk) {
+          CD_HashPut(self->chunks,buffer,(CDPointer) result);
+       }
+    }
 
     if (status == CDOk) {
         return result;
-    }
+    } 
     else {
         CD_free(result);
 

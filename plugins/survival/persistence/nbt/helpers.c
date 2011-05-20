@@ -89,7 +89,7 @@ CDError
 cdnbt_GenerateChunk (SVWorld* world, int x, int z, SVChunk* chunk, const char* seed)
 {
     CDError   status;
-   CDString* chunkPath = cdnbt_ChunkPath(world, x, z);
+    CDString* chunkPath = cdnbt_ChunkPath(world, x, z);
     CDString* directory = CD_StringDirname(chunkPath);
 
     CD_mkdir(CD_StringContent(directory), 0755);
@@ -97,18 +97,6 @@ cdnbt_GenerateChunk (SVWorld* world, int x, int z, SVChunk* chunk, const char* s
     CD_EventDispatchWithError(status, world->server, "Mapgen.chunk", world, x, z, chunk, seed);
 
     // TODO: save the generated chunk
-
-
-    // copy chunk to chunk DB
-    SVChunk* dst = &chunks[x+100][z+100];
-memcpy(dst->heightMap,chunk->heightMap,256);
-memcpy(dst->blocks,chunk->blocks,32768);
-memcpy(dst->data,chunk->data,16384);
-memcpy(dst->blockLight,chunk->blockLight,16384);
-memcpy(dst->skyLight,chunk->skyLight,16384);
-    
-
-  
 
     end: {
         CD_DestroyString(chunkPath);

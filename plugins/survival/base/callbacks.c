@@ -55,16 +55,8 @@ cdsurvival_SendChunk (CDServer* server, SVPlayer* player, SVChunkPosition* coord
     DO {
         SDEBUG(server, "sending chunk (%d, %d)", coord->x, coord->z);
 
-        SVChunk* chunk = CD_malloc(sizeof(SVChunk));
-        CDError  status;
-
-        CD_EventDispatchWithError(status, server, "World.chunk", player->world, coord->x, coord->z, chunk);
-
-        if (status != CDOk) {
-            CD_free(chunk);
-
-            return false;
-        }
+        //TODO: use a status variable 
+        SVChunk* chunk = SV_WorldGetChunk(player->world,coord->x,coord->z);
 
         uLongf written = compressBound(81920);
         Bytef* buffer  = CD_malloc(written);
@@ -74,16 +66,12 @@ cdsurvival_SendChunk (CDServer* server, SVPlayer* player, SVChunkPosition* coord
 
         if (compress(buffer, &written, (Bytef*) data, 81920) != Z_OK) {
             SERR(server, "zlib compress failure");
-
-            CD_free(chunk);
             CD_free(data);
-
             return false;
         }
 
         SDEBUG(server, "compressed to %ld bytes", written);
 
-        CD_free(chunk);
         CD_free(data);
 
         SVPacketMapChunk pkt = {
